@@ -1,0 +1,17 @@
+# Site settings
+title: Jacob Reinhold
+header-img: img/blog-bg.jpg
+email: jcreinhold@gmail.com
+description: Blog
+baseurl: ""
+url: "https://jcreinhold.github.io"
+github_username: jcreinhold
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+permalink: pretty
+paginate: 5
+paginate_path: "/blog/page:num"
+exclude: ["less","node_modules","Gruntfile.js","package.json","README.md"]
+gems: [jekyll-paginate]
