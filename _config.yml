@@ -6,6 +6,7 @@ description: Blog
 baseurl: ""
 url: "https://jcreinhold.github.io"
 github_username: jcreinhold
+gitlab_username: jcreinhold
 
 # Build settings
 markdown: kramdown
