@@ -1,8 +1,8 @@
 # Site settings
 title: Jacob Reinhold
-header-img: img/blog-bg.jpg
+header-img: img/notes-bg.jpg
 email: jcreinhold@gmail.com
-description: Blog
+description: Notes
 baseurl: ""
 url: "https://jcreinhold.github.io"
 github_username: jcreinhold
