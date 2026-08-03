@@ -1,0 +1,12 @@
+{
+  "name": "jcreinhold-github-io",
+  "private": true,
+  "description": "Personal website of Jacob Reinhold — plain HTML + CSS + MathJax on GitHub Pages",
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  }
+}
