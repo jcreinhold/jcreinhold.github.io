@@ -15,8 +15,8 @@ python3 -m http.server 8000
 The site uses [Prettier](https://prettier.io) to keep the HTML/CSS consistent.
 
 ```sh
-npm install        # one-time
-npm run format     # format all files
+npm install           # one-time
+npm run format        # format all files
 npm run format:check  # verify without writing (CI-friendly)
 ```
 
@@ -30,18 +30,3 @@ npm run format:check  # verify without writing (CI-friendly)
 6. Push.
 
 Math: use `$...$` inline and `$$...$$` display math, exactly like LaTeX.
-
-## Deploy / DNS (one-time)
-
-The `CNAME` file points GitHub Pages at `www.jcreinhold.com`.
-
-1. Push this repo to GitHub as `jcreinhold/jcreinhold.github.io` (public).
-2. Repo → **Settings → Pages** — it should auto-detect the site on the `main` branch.
-3. At the DNS provider for `jcreinhold.com`:
-   - `CNAME` record: `www` → `jcreinhold.github.io`
-   - Apex `A` records: `@` → `185.199.108.153`, `185.199.109.153`,
-     `185.199.110.153`, `185.199.111.153`
-   - (remove the old A records pointing at the DigitalOcean droplet)
-4. Back in **Settings → Pages**: wait for the DNS check to pass, then tick **Enforce HTTPS**.
-   GitHub auto-provisions and renews the Let's Encrypt certificate.
-5. Verify https://www.jcreinhold.com works, _then_ destroy the droplet.
