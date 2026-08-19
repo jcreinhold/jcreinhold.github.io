@@ -217,6 +217,9 @@ a {
 .tl-links a:hover {
   color: var(--link);
 }
+.tl-archived {
+  font-style: italic;
+}
 .tl-desc {
   margin: 0.1em 0 0;
   font-size: 0.92rem;
