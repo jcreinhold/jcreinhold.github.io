@@ -60,6 +60,10 @@ main {
   font-size: 1.05rem;
   text-decoration: none;
   color: var(--text);
+  white-space: nowrap;
+}
+.nav-links {
+  white-space: nowrap;
 }
 .nav-links a {
   margin-left: 1.25rem;
@@ -177,12 +181,14 @@ a {
   gap: 0.4rem;
   text-decoration: none;
 }
+/* min-height must fit the tallest stack (currently nine marks), or the
+   fullest year's axis and label sink below the others. */
 .era-marks {
   display: flex;
   flex-direction: column-reverse;
   justify-content: flex-start;
   gap: 3px;
-  min-height: 4.6rem;
+  min-height: 5.2rem;
   width: 100%;
   align-items: center;
   border-bottom: 1px solid var(--border);
@@ -222,7 +228,12 @@ a.era:focus-visible {
     gap: 0.15rem;
   }
   .era-marks {
-    min-height: 3.4rem;
+    gap: 2px;
+    min-height: 4.2rem;
+  }
+  .era-marks .m {
+    width: 5px;
+    height: 5px;
   }
   .era-year {
     font-size: 0.6rem;
