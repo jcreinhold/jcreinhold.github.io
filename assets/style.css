@@ -154,6 +154,84 @@ a {
   font-size: 0.95rem;
 }
 
+/* ---- projects page: timeline ---- */
+.timeline {
+  margin-top: 1.5rem;
+}
+.tl-year {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  gap: 1.25rem;
+  margin: 2.2rem 0;
+}
+.tl-year-label {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-align: right;
+  padding-top: 0.45em;
+  margin: 0;
+}
+.tl-items {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 1.25rem;
+  border-left: 1px solid var(--border);
+}
+.tl-item {
+  position: relative;
+  padding: 0.55rem 0;
+}
+.tl-item::before {
+  content: "";
+  position: absolute;
+  left: calc(-1.25rem - 4px);
+  top: 1rem;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.tl-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+.tl-name {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+}
+.tl-links {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 0.72rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.tl-links a {
+  color: var(--muted);
+  text-decoration: none;
+}
+.tl-links a:hover {
+  color: var(--link);
+}
+.tl-desc {
+  margin: 0.1em 0 0;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+@media (max-width: 560px) {
+  .tl-year {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+  .tl-year-label {
+    text-align: left;
+  }
+}
+
 /* ---- article elements ---- */
 article img {
   max-width: 100%;
