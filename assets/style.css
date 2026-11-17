@@ -117,21 +117,10 @@ a {
   margin: 0.4em 0 0.1em;
 }
 .profile {
-  display: inline-block;
-  position: relative;
   width: 130px;
   height: 130px;
-  overflow: hidden;
   border-radius: 50%;
-}
-.profile img {
-  /* Frame an 860px square at (80, 200) in the original 1152 × 1536 photo. */
-  position: absolute;
-  width: 133.9535%;
-  max-width: none;
-  height: auto;
-  left: -9.3023%;
-  top: -23.2558%;
+  object-fit: cover;
 }
 .tagline {
   color: var(--muted);
