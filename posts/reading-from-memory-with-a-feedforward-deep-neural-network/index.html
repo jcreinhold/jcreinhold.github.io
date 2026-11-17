@@ -18,7 +18,10 @@
       };
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
-      <link rel="canonical" href="https://jcreinhold.github.io/posts/reading-from-memory-with-a-feedforward-deep-neural-network/" />
+    <link
+      rel="canonical"
+      href="https://jcreinhold.github.io/posts/reading-from-memory-with-a-feedforward-deep-neural-network/"
+    />
   </head>
   <body>
     <header class="site-header">
@@ -38,58 +41,60 @@
 
         <p>
           To compute complex functions, computers rely on the ability to read from and write to memory. This ability is
-          missing, however, from standard deep neural neural networks (DNNs), and
+          not built into a standard feedforward deep neural network (DNN), and
           <a href="https://www.nature.com/articles/nature20101?curator=TechREDEF">research has shown</a>
           that reading and writing to external memory facilitates certain types of computation. But how can we train a
-          DNN to access memory? Both reading and writing are non-differentiable functions—as devised in digital
-          computers—so they are incompatible with backpropagation which is the standard approach to training a DNN.
-          There has been a substantial amount of work that infuses recurrent neural networks with external memory;
-          however, in this post, we’ll make use of the Gumbel-softmax reparameterization to allow a feedforward DNN to
-          read from an external memory bank.
+          DNN to access memory? Choosing a discrete address—as devised in digital computers—doesn't provide a useful
+          ordinary gradient for backpropagation, which is the standard approach to training a DNN. There has been a
+          substantial amount of work that infuses recurrent neural networks with external memory; however, in this post,
+          we’ll make use of the Gumbel-softmax reparameterization to allow a feedforward DNN to read from an external
+          memory bank.
         </p>
         <h2>Integers and indexing</h2>
         <p>
           A real-world digital computer has a finite bank of memory which is addressed with a binary number. When
           written to, the memory location associated with that number stores a value that the computer can load for
-          later processing. This ability to store and load data to memory enables computers to compute a large class of
-          functions (that is, the set of functions that are computable by a Turing machine or any equivalent model of
-          computation). Theoretically, recurrent neural networks
+          later processing. This ability to store and load data, together with suitable control flow and idealized
+          unbounded memory, enables computers to compute a large class of functions (that is, the set of functions that
+          are computable by a Turing machine or any equivalent model of computation). Theoretically, some idealized
+          recurrent neural networks
           <a href="https://www.sciencedirect.com/science/article/pii/089396599190080F">are capable</a>
-          of simulating a Turing machine and, consequently, can compute the same set of functions. However, to the best
-          of my knowledge, no such proof has been shown for feedforward networks (especially ones of finite-depth and
-          width).
+          of simulating a Turing machine and, consequently, can compute the same set of functions. A finite feedforward
+          network does not by itself provide the unbounded computation in that comparison; here, we're only trying to
+          learn how to select a value from memory.
         </p>
         <p>
           Let's briefly consider how memory works in a real-world computer. Suppose you have a computer with 16-bit
-          memory. You might have an instruction located at memory address (hexadecimal) <code>0x0000</code> and a datum,
-          necessary for some computation, stored at <code>0x1000</code>. Suppose the computer has an instruction at
-          <code>0x0000</code> saying to load the datum at <code>0x1000</code> to a register. When the computer is
+          addresses. You might have an instruction located at memory address (hexadecimal) <code>0x0000</code> and a
+          datum, necessary for some computation, stored at <code>0x1000</code>. Suppose the computer has an instruction
+          at <code>0x0000</code> saying to load the datum at <code>0x1000</code> to a register. When the computer is
           started—in this simplistic example—a piece of circuitry called a program counter will configure the state of
           the circuitry in the CPU to load the instruction at <code>0x0000</code> which configure the state of the
           circuitry to load the datum at <code>0x1000</code> into a specified register and used for the further
           computation (that is, the instructions that follow <code>0x0000</code>).
         </p>
         <p>
-          Standard feedforward DNNs cannot learn to do this type of loading or any type of loading similar to this from
-          an external memory source. DNNs have real-valued (really, floating-point) parameters and treat input and
-          output as real-valued arrays of numbers, even if the input and output are integer-valued (or, as in the case
-          of categorical variables, can be mapped to the integers). For example, 2D natural images are often composed of
-          integers between 0 and 255; however, this property is ignored in standard DNNs and all inputs are cast to real
-          numbers. In classification tasks, the output of the network—before any user-defined thresholding or argmax
-          operation—represents a probability and is correspondingly real-valued. This transformation from integers to
-          real-valued numbers is necessary for backpropagation to update the weights of the DNN.
+          Learning this type of loading with backpropagation requires a way to train the network's choice of address.
+          DNNs have real-valued (really, floating-point) parameters and treat input and output as real-valued arrays of
+          numbers, even if the input and output are integer-valued (or, as in the case of categorical variables, can be
+          mapped to the integers). For example, 2D natural images are often composed of integers between 0 and 255;
+          however, the inputs are commonly cast to floating-point numbers before the network processes them. In
+          classification tasks, the output of the network—before any user-defined thresholding or argmax
+          operation—represents a probability and is correspondingly real-valued. Backpropagation needs derivatives with
+          respect to the weights; it does not require the original input values to vary continuously.
         </p>
         <p>
           But what if you are in a situation where you require integer-values in the middle of the network? A naive
           solution would be to use rounding. This, however, is non-differentiable (or at least has a zero gradient
-          almost everywhere). So if rounding is used, the DNN cannot update its weights.
+          almost everywhere). So ordinary backpropagation through rounding won't tell the DNN how to update the
+          parameters that produce the address.
         </p>
         <p>
           Let’s assume that we are working with an external memory bank that is an array of numbers (a tensor, if you
           like), and the job of the network is to calculate the (one-hot) index location of a value in that memory bank.
           An way to do this is to allow for some fuzziness and take a weighted average of several locations (using the
           softmax function on what represents the memory indices) as in the
-          <a href="https://arxiv.org/abs/1410.5401">Neural Turning Machine</a>. However, I’d argue that soft indexing is
+          <a href="https://arxiv.org/abs/1410.5401">Neural Turing Machine</a>. However, I’d argue that soft indexing is
           not as interpretable as simply addressing <em>one</em> location from memory.
         </p>
         <p>
@@ -105,16 +110,15 @@
         <p>
           We can create hard indices—true one-hot index vectors—through a trick called the
           <a href="https://arxiv.org/abs/1611.01144">Gumbel-softmax (GS) reparameterization</a>. The GS relaxes the hard
-          indexing into a soft indexing problem that can be (asymptotically) viewed as an argmax operation.
+          indexing into a soft indexing problem; the straight-through variant below makes the forward pass one-hot.
         </p>
         <p>
           Similar to the Gaussian reparameterization discussed in the
           <a href="https://arxiv.org/abs/1312.6114">variational autoencoder</a>, the GS allows backpropagation to work
           with a sampling step in the middle of a DNN—a normally non-differentiable operation. GS works by changing the
           sampling operation in such a way that all of the component operations are differentiable. While there are
-          other ways that you can estimate the gradient of a function of integer-valued variables, the GS
-          reparameterization provides a better estimate of the gradient (in the sense that the gradient estimate has
-          lower variance).
+          other ways that you can estimate gradients for discrete choices, the GS relaxation can offer lower variance
+          than score-function estimators, at the cost of bias relative to the original discrete objective.
         </p>
         <p>
           While the theoretical construction of the GS is outside the scope of this post, I'll give a high-level
@@ -122,20 +126,20 @@
           with a hidden layer $f_i(\cdot)$ producing a representation $h \in \mathbb{R}^n$ that we intend to use as
           memory indices.
         </p>
-        <p>To use $h$ to create a one-hot vector that indexes a memory location we:</p>
+        <p>To use $h$ to create a soft approximation to a one-hot vector that indexes a memory location we:</p>
         <ol>
-          <li>Generate a sample $g\in\mathbb{R}^n$ from a Gumbel distribution,</li>
+          <li>Generate $g\in\mathbb{R}^n$ with independent standard Gumbel entries,</li>
           <li>Add $h$ and $g$,</li>
           <li>Divide the result by a <em>temperature</em> value $\tau &gt; 0$,</li>
           <li>Take softmax of the result.</li>
         </ol>
         <p>
           The temperature value $\tau$, as it goes to zero, makes the softmax operation functionally equivalent to an
-          argmax operation. An example of the result is shown in Fig. 1 where an example distribution is given in the
-          left-most image and the result of the GS sampling process is given in the four plots to the right, each with
-          different values of $\tau$. We see that, as $\tau$ gets close to 0, the sampling does function as an
-          approximate argmax operation. When $\tau$ grows, the less the operation looks like an argmax. In practice,
-          setting $\tau$ very close to zero causes exploding gradients which make training unstable, so we set $\tau$
+          argmax operation on the perturbed logits $h+g$. An example of the result is shown in Fig. 1 where an example
+          distribution is given in the left-most image and the result of the GS sampling process is given in the four
+          plots to the right, each with different values of $\tau$. We see that, as $\tau$ gets close to 0, the sampling
+          does function as an approximate argmax operation. When $\tau$ grows, the less the operation looks like an
+          argmax. In practice, setting $\tau$ very close to zero can make gradient estimates unstable, so we set $\tau$
           reasonably low or scale it down it as training progresses.
         </p>
         <figure>
@@ -156,7 +160,8 @@
         <p>
           where $\mathrm{detach}(\cdot)$ detaches the argument from the computation graph keeping track of the gradients
           for backpropagation. Adding a number is differentiable and the resulting number, $y_{\mathrm{st}}$ has the
-          same values as $y_{\mathrm{oh}}$ but is still on the computation graph (with the gradients of $y$).
+          same values as $y_{\mathrm{oh}}$ but is still on the computation graph (with the gradients of $y$). This is a
+          biased gradient estimate for the discrete problem; it does not make the hard choice differentiable.
         </p>
         <p>
           Implementing the above in PyTorch is simple and the code is below where the
@@ -242,9 +247,9 @@ y = memory[idx]</code></pre>
           random sampling may be desired but not in this application.
         </p>
         <p>
-          Because only one location of the memory bank is 1 and all other entries are 0 (in both training and
-          production), the result will consist only of the value from one memory location; that is, the network will
-          have functionally addressed a memory location and read its value.
+          Because only one entry of the index vector is 1 and all other entries are 0 (in both training and production),
+          the result will consist only of the value from one memory location; that is, the network will have
+          functionally addressed a memory location and read its value.
         </p>
         <p>
           We train the network for several hundred iterations with the Adam optimizer using MSE as a loss function and
@@ -264,14 +269,14 @@ y = memory[idx]</code></pre>
           memory bank, the network would fail to use that extra information. So this form of memory addressing is
           brittle. But, you could swap the memory out for another set of variables if the mapping was the same. For
           example, if the quadratic was changed to $2x^2$, then you could swap the memory with the values multiplied by
-          two and expect the same performance. Something you can’t do with a standard neural network.
+          two and get a prediction scaled by two. You can change the stored values without retraining the network that
+          chooses an address.
         </p>
         <h2>Takeaways</h2>
         <p>
-          We showed a method to read from external memory inside a feedforward neural network, which is normally an
-          operation that prevents the network from being trained. We used the Gumbel-softmax reparameterization to
-          create true one-hot vectors that index one location in memory, and we walked through a toy experiment showing
-          that the proposed method to read from memory does work as expected.
+          We showed a method to read from external memory inside a feedforward neural network. We used the
+          straight-through Gumbel-softmax trick to create true one-hot vectors that index one location in memory, and we
+          walked through a toy experiment showing that the proposed method to read from memory does work as expected.
         </p>
         <p>
           While the toy experiment was too simplistic to showcase the possibilities of this framework, you can, for

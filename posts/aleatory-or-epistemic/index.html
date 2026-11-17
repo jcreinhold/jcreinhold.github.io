@@ -21,7 +21,7 @@
       };
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
-      <link rel="canonical" href="https://jcreinhold.github.io/posts/aleatory-or-epistemic/" />
+    <link rel="canonical" href="https://jcreinhold.github.io/posts/aleatory-or-epistemic/" />
   </head>
   <body>
     <header class="site-header">
@@ -38,6 +38,22 @@
       <article>
         <h1>Aleatory or epistemic? WTF are those?</h1>
         <p class="post-meta">Jul 31, 2020</p>
+
+        <aside class="update-note">
+          <p>
+            <strong>Correction (November 17, 2026):</strong> The original classification example used an incorrect loss:
+            I averaged cross-entropies over noisy logits instead of taking the negative log of the average correct-class
+            probability, as in
+            <a href="https://arxiv.org/html/1703.04977#S3.SS3">Kendall and Gal's classification model</a>. For fixed
+            mean logits, the loss I used favors zero added noise, so the example did not demonstrate the claimed
+            aleatory uncertainty. I've removed that example, its plot, and the accompanying loss explanation. The
+            regression examples remain. The
+            <a href="https://nbviewer.jupyter.org/gist/jcreinhold/745385337944dbcc98b47578b5a769f9"
+              >original classification notebook</a
+            >
+            has the same error and is linked here only as a historical reference.
+          </p>
+        </aside>
 
         <p>
           <a href="https://www.deeplearningbook.org/">Deep neural networks</a> (DNNs) are easy-to-implement, versatile
@@ -66,9 +82,9 @@
           You might reasonably presume that the softmax (or sigmoid) output of a DNN could be used to measure how
           certain or uncertain the DNN is in its prediction; you would expect that seeing a softmax output close to 0 or
           1 would indicate certainty, and an output close to 0.5 would indicate uncertainty. In reality,
-          <a href="https://arxiv.org/pdf/1706.04599.pdf">the softmax outputs are rarely close to 0.5</a>
-          and are, more frequently than not, close to 0 or 1 regardless of whether the DNN is making a correct
-          prediction. Unfortunately, this fact makes naive uncertainty estimates unreliable (for instance,
+          <a href="https://arxiv.org/pdf/1706.04599.pdf">DNNs can be overconfident</a>, assigning probabilities close to
+          0 or 1 even when making an incorrect prediction. Unfortunately, this can make naive uncertainty estimates
+          unreliable (for instance,
           <a href="https://en.wikipedia.org/wiki/Entropy_%28information_theory%29">entropy</a> over the softmax
           outputs).
         </p>
@@ -97,17 +113,13 @@
         <p>
           In this article, we explore how to estimate two types of statistical uncertainty alongside a prediction in a
           DNN. We first discuss the definition of both types of uncertainty, and then we highlight one popular and
-          easy-to-implement technique to estimate these types of uncertainty. Finally, we show and implement some
-          examples for both classification and regression that makes use of these uncertainty estimates.
+          easy-to-implement technique to estimate these types of uncertainty. Finally, we show and implement a toy
+          regression example and discuss an application to medical images.
         </p>
         <p>
-          For those who are most interested in looking at code examples, here are two Jupyter Notebooks one with a
+          For those who are most interested in looking at code examples, here is a Jupyter Notebook with a
           <a href="https://nbviewer.jupyter.org/gist/jcreinhold/cddf290b1d3722b0c88bbc3c82df38a3"
             >toy regression example</a
-          >
-          and the other with a
-          <a href="https://nbviewer.jupyter.org/gist/jcreinhold/745385337944dbcc98b47578b5a769f9"
-            >toy classification example</a
           >. There are also PyTorch-based code snippets in the "Examples and Applications" section below.
         </p>
         <h3>What do we mean by 'uncertainty'?</h3>
@@ -158,11 +170,12 @@
           reader, but their definitions are related to the deepest question in the foundations of probability and
           statistics:
           <a href="https://plato.stanford.edu/entries/probability-interpret/">What does probability mean</a>? If you are
-          familiar with terms <em>frequentist</em> and <em>Bayesian</em>, then you will see the respective relationship
-          between aleatory (objective) and epistemic (subjective) uncertainty. I'm not about to solve this philosophical
-          issue in this blog post, but know that the definitions of aleatory and epistemic uncertainty are nuanced, and
-          what falls into which category is debatable. For a more comprehensive (but still applied) review of these
-          terms, take a look at the article: "<a
+          familiar with terms <em>frequentist</em> and <em>Bayesian</em>, then you will see a relationship between
+          aleatory (objective) and epistemic (subjective) uncertainty. This is not a one-to-one correspondence: Bayesian
+          models can represent both types of uncertainty. I'm not about to solve this philosophical issue in this blog
+          post, but know that the definitions of aleatory and epistemic uncertainty are nuanced, and what falls into
+          which category is debatable. For a more comprehensive (but still applied) review of these terms, take a look
+          at the article: "<a
             href="https://www.sciencedirect.com/science/article/pii/S0167473008000556?casa_token=yWEYH7OP70sAAAAA%3AFnmF4crmHui1-NCqSx99tkamdl-ITjwAQ7TSlxlHFTpoYp_9xPtAVqtw0CH4ByYr7-gRC71c5Q"
             >Aleatory or Epistemic? Does it matter?</a
           >"
@@ -242,8 +255,8 @@
           Altogether the final network structure is something like what is shown in Fig. 2. There is an input
           <strong><em>x</em></strong> which is fed to a DNN with dropout after every layer (dropout after every layer is
           what is originally specified, but—in practice—dropout after every layer often makes training too difficult).
-          The output of this DNN is an estimated target $\hat{\mathbf{y}}$ and an estimated variance or scale parameter
-          $\hat{\sigma}^2$.
+          The output of this DNN is an estimated target $\hat{\mathbf{y}}$ and an estimated variance $\hat{\sigma}^2$
+          (or a scale parameter $\hat{b}$ for the L1 variant below).
         </p>
         <figure>
           <img alt="" loading="lazy" src="/assets/images/bnn.png" />
@@ -254,21 +267,21 @@
         </figure>
         <p>This DNN is trained with a loss function like:</p>
         <p>
-          $$ \mathcal{L}(\mathbf{y}, (\hat{\mathbf{y}},\hat{\sigma}^2)) = \frac{1}{M} \sum_{i=1}^M \frac{1}{2}
-          \hat{{\sigma}}_i^{-2} \lVert \mathbf{y}_i - \mathbf{\hat{y}}_i \rVert_2^2 + \frac{1}{2} \log \hat{\sigma}_i^2
-          $$
+          $$ \mathcal{L}(\mathbf{y}, (\hat{\mathbf{y}},\hat{\sigma}^2)) = \frac{1}{M} \sum_{i=1}^M \left(\frac{1}{2}
+          \hat{\sigma}_i^{-2} (y_i - \hat{y}_i)^2 + \frac{1}{2} \log \hat{\sigma}_i^2\right). $$
         </p>
         <p>or</p>
         <p>
           $$ \mathcal{L}(\mathbf{y}, (\hat{\mathbf{y}}, \hat{\mathbf{b}})) = \frac{1}{M} \sum_{i=1}^M
-          \hat{\mathbf{b}}_i^{-1} \lVert \mathbf{y}_i - \hat{\mathbf{y}}_i \rVert_1 + \log \hat{\mathbf{b}}_i $$
+          \left(\hat{b}_i^{-1} |y_i - \hat{y}_i| + \log \hat{b}_i\right). $$
         </p>
         <p>
           If the network is being trained for a regression task. The first loss function shown above is an MSE variant
           with uncertainty, whereas the second is an L1 variant. These are derived from assuming a Gaussian and
           <a href="https://en.wikipedia.org/wiki/Laplace_distribution">Laplace</a> distribution for the
-          <a href="https://en.wikipedia.org/wiki/Posterior_probability#Definition">likelihood</a>, respectively, where
-          each component is independent and the variance (or scale parameter) is estimated and fitted by the network.
+          <a href="https://en.wikipedia.org/wiki/Likelihood_function">likelihood</a>, respectively, with conditionally
+          independent target components. Here $i$ indexes scalar target components, $M$ is the number of components
+          averaged over, and the variance (or scale parameter) is estimated and fitted by the network.
         </p>
         <p>
           As mentioned above, these loss functions have mathematical derivations, but we can intuit why this variance
@@ -278,32 +291,8 @@
           >), then the DNN should estimate a low variance term on that so as to minimize the loss. If, however, the DNN
           cannot estimate the true value of the target (for example, there is low signal-to-noise ratio), then the
           network can minimize the loss by estimating a high variance. This will reduce the MSE or L1 loss term because
-          that term will be divided by the variance; however, the network should not always do this because of the log
-          variance term which penalizes high variance estimates.
-        </p>
-        <p>
-          If the network is being trained for a classification (or segmentation) task, the loss would look something
-          like this two-part loss function:
-        </p>
-        <p>
-          $$ \hat{\mathbf{x}}_t = \hat{\mathbf{y}} + \varepsilon_t \qquad \varepsilon_t \sim
-          \mathcal{N}(\mathbf{0},\mathrm{diag}(\hat{\sigma}^2)) $$
-        </p>
-        <p>
-          $$ \mathcal{L}(\mathbf{x}, \hat{\mathbf{x}}) = \frac{1}{T} \sum_{t=1}^T \mathrm{Cross\ entropy}(\mathbf{x},
-          \hat{\mathbf{x}}_t) $$
-        </p>
-        <p>
-          The intuition here with this loss function is: When the DNN can easily estimate the right class of a
-          component, the value $\hat{\mathbf{y}}$ will be high for that class and the DNN should estimate a low variance
-          so as to minimize the added noise (so that all samples will be concentrated around the correct class). If,
-          however, the DNN cannot easily estimate the class of the component, the $\hat{\mathbf{y}}$ value should be low
-          and adding noise can increase the guess, by chance, for the correct class which can overall minimize the loss
-          function. (See
-          <a href="https://alexgkendall.com/media/papers/alex_kendall_phd_thesis_compressed.pdf"
-            >Pg. 41 of Alex Kendall's thesis</a
-          >
-          for more discussion on this loss function.)
+          that term will be divided by the variance (or the scale parameter for L1); however, the network should not
+          always do this because of the log term which penalizes high estimates.
         </p>
         <p>
           Finally, in testing, the network is sampled <em>T</em> times to create <em>T</em> estimated targets and
@@ -321,19 +310,11 @@
         <p>
           $$ \mathrm{Epistemic\ uncertainty} = \frac{1}{T} \sum_{t=1}^T (\mathbf{\hat{y}}_t - \bar{\mathbf{y}})^2 $$
         </p>
-        <p>
-          There are various interpretations of epistemic uncertainty for the classification case:
-          <a href="https://arxiv.org/abs/1808.01200">entropy</a>,
-          <a href="https://pubmed.ncbi.nlm.nih.gov/29259224/">sample variance</a>,
-          <a href="https://arxiv.org/abs/1703.02910">mutual information</a>. Each has been shown to be useful in its own
-          right, and the choice of what type to choose will be application dependent.
-        </p>
         <h3>Examples and applications</h3>
         <p>
-          To make the theory more concrete, we'll go through two toy examples for estimating uncertainty with DNNs in a
-          regression and classification task with PyTorch. The code below are excerpts from full implementations which
-          are available in Jupyter notebooks (mentioned at the beginning of the next two subsections). Finally, we'll
-          discuss calculating uncertainty in a real-world data example with medical images.
+          To make the theory more concrete, we'll go through a toy regression example for estimating uncertainty with
+          DNNs in PyTorch. The code below is excerpted from the full implementation in the regression notebook. Finally,
+          we'll discuss calculating uncertainty in a real-world data example with medical images.
         </p>
         <h4>Regression example</h4>
         <p>
@@ -392,53 +373,6 @@
             thresholded epistemic uncertainty. See the Jupyter Notebook for the full implementation.
           </figcaption>
         </figure>
-        <h4>Classification example</h4>
-        <p>
-          In the
-          <a href="https://nbviewer.jupyter.org/gist/jcreinhold/745385337944dbcc98b47578b5a769f9"
-            >classification notebook</a
-          >, we, again, fit a neural network composed of two fully-connected layers with dropout on the hidden layer. In
-          this case, we are trying to do binary classification. Consequently, the loss function is as implemented below.
-        </p>
-        <pre><code>class ExtendedBCELoss(nn.Module):
-    """ modified BCE loss for variance fitting """
-    def forward(self, out:torch.Tensor, y:torch.Tensor, n_samp:int=10) -&gt; torch.Tensor:
-        logit, sigma = out
-        dist = torch.distributions.Normal(logit, torch.exp(sigma))
-        mc_logs = dist.rsample((n_samp,))
-        loss = 0.
-        for mc_log in mc_logs:
-            loss += F.binary_cross_entropy_with_logits(mc_log, y)
-        loss /= n_samp
-        return loss</code></pre>
-        <p>
-          There are numerous uncertainty estimates we could compute in this scenario. In the below implementation, we
-          calculate epistemic, entropy, and aleatory uncertainty. Entropy could reasonably be argued to belong to one of
-          aleatory and epistemic uncertainty, but below it is separated out so that aleatory and epistemic uncertainty
-          are calculated as previously described.
-        </p>
-        <pre><code>def classification_uncertainty(logits:torch.Tensor, sigmas:torch.Tensor, eps:float=1e-6) -&gt; Tuple[torch.Tensor, torch.Tensor]:
-    """ calculate epistemic, entropy, and aleatory uncertainty quantities """
-    probits = torch.sigmoid(logits)
-    epistemic = probits.var(dim=0, unbiased=True)
-    probit = probits.mean(dim=0)
-    entropy = -1 * (probit * (probit + eps).log2() + ((1 - probit) * (1 - probit + eps).log2()))
-    aleatory = torch.exp(sigmas).mean(dim=0)
-    return epistemic, entropy, aleatory</code></pre>
-        <p>
-          In Fig. 5, we visualize the resulting epistemic and aleatory uncertainty, as well as entropy, over the
-          training data. As we can see the training data classes overlaps near zero, and the uncertainty measures peak
-          there. In this toy example, all three measures of uncertainty are highly correlated. Discussion as to why is
-          provided in the notebook for the interested reader.
-        </p>
-        <figure>
-          <img alt="" loading="lazy" src="/assets/images/uncertainty-histograms-1.png" />
-          <figcaption>
-            <strong>Fig. 5</strong>: Various measures of uncertainty for a binary classification example. See the
-            <a href="https://nbviewer.jupyter.org/gist/jcreinhold/745385337944dbcc98b47578b5a769f9">Jupyter Notebook</a>
-            for the full implementation.
-          </figcaption>
-        </figure>
         <h4>Medical image example</h4>
         <p>
           In this last example, I'll show some results and applications of uncertainty in a real-world example published
@@ -458,16 +392,15 @@
           only one; one output is the estimated MR image and the other is the pixel-wise variance.
         </p>
         <p>
-          Example inputs and outputs are shown in Fig. 6. The CT image on the far left has an anomaly in the left
+          Example inputs and outputs are shown in Fig. 5. The CT image on the far left has an anomaly in the left
           hemisphere of the occipital lobe (lower-left of the brain in the image; it is more easily visualized in the
-          corresponding MR image to the right). The DNN was only trained on healthy images, so the DNN should be
-          ignorant of such anomalous data, and it should reflect this—according to the theory of epistemic uncertainty
-          as previously discussed—by having high sample variance (that is, high epistemic uncertainty) in that region.
+          corresponding MR image to the right). The DNN was only trained on healthy images, so we would hope to see high
+          sample variance (that is, high estimated epistemic uncertainty) in the anomalous region.
         </p>
         <figure>
           <img alt="" loading="lazy" src="/assets/images/mr-images-uncertainty.png" />
           <figcaption>
-            <strong>Fig. 6</strong>: From left to right – CT image is input to the network, MR image is target in
+            <strong>Fig. 5</strong>: From left to right – CT image is input to the network, MR image is target in
             training (shown here because anomaly visible in the occipital lobe in the left hemisphere), pixel-wise
             epistemic uncertainty, pixel-wise aleatory uncertainty, and the pixel-wise ratio of epistemic over aleatory
             is shown under the title "Scibilic" which clearly highlights the anomalous region.

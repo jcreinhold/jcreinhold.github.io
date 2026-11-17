@@ -21,7 +21,10 @@
       };
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
-      <link rel="canonical" href="https://jcreinhold.github.io/posts/image-enhancement-and-the-data-processing-inequality/" />
+    <link
+      rel="canonical"
+      href="https://jcreinhold.github.io/posts/image-enhancement-and-the-data-processing-inequality/"
+    />
   </head>
   <body>
     <header class="site-header">
@@ -60,9 +63,8 @@
           <em>data processing inequality.</em> We'll quickly overview the basics of information theory so that we can
           properly motivate the inequality, and then we'll discuss its ability and its limitations in illuminating the
           impact of data processing. Specifically, we'll discuss how it applies to image enhancement such as
-          super-resolution; we'll show that it is both an essential component of analysis because it shows that image
-          enhancement cannot create new information, and that it is useless in practice because it is the wrong way to
-          analyze image enhancement methods.
+          super-resolution; we'll show that it puts a useful limit on what image enhancement can do, but doesn't by
+          itself tell us whether an enhancement method is useful in practice.
         </p>
         <h2>Information and entropy</h2>
         <p>
@@ -78,34 +80,35 @@
         </p>
         <p>
           First we need to define a (source) <em>code</em> which is a mapping from some set of events (i.e., whatever
-          $\mathcal{X}$ represents) to a set of strings of symbols (e.g., strings of 0s and 1s). Then the log of the
-          reciprocal of the probability mass of an event is equal to a (competitively) optimal code-length that
-          describes the event, where "optimality" is in the sense of maximal average compression of a sequence of
-          transmitted symbols.
+          $\mathcal{X}$ represents) to a set of strings of symbols (e.g., strings of 0s and 1s). We'll use a binary
+          prefix code, meaning no codeword is the beginning of another. The log of the reciprocal of the probability
+          mass is an ideal code-length, where "optimality" is in the sense of maximal average compression of a sequence
+          of transmitted symbols. Actual binary codewords have integer lengths, so they cannot always achieve this ideal
+          exactly.
         </p>
         <p>
-          For example, if some event $x=b$ has $p(b)=1/2$, then the optimal (source) code-length is 1. If some event
-          $x=c$ has $p(c)=1/256$, then the optimal code-length is 8. Why is encoding in this way optimal? The intuition
-          is that common events should be encoded with short codes because they are frequently encountered, and short
-          codes reduce the total number of symbols that you need to transmit to communicate a message. The opposite
-          holds for rare events; you pay little penalty for encoding rare sequences with long codes because they are
-          communicated infrequently. In the end, you'll reduce the average number of symbols used to communicate a
-          string of events if you encode in this way.
+          For example, if some event $x=b$ has $p(b)=1/2$, then the ideal code-length is 1. If some event $x=c$ has
+          $p(c)=1/256$, then the ideal code-length is 8. Why aim for these lengths? The intuition is that common events
+          should be encoded with short codes because they are frequently encountered, and short codes reduce the total
+          number of symbols that you need to transmit to communicate a message. The opposite holds for rare events; you
+          pay little penalty for encoding rare sequences with long codes because they are communicated infrequently. In
+          the end, you'll reduce the average number of symbols used to communicate a string of events if you encode in
+          this way.
         </p>
         <p>
-          To show this mathematically, let $f:\mathcal{X}\to\{0,1\}^m$ describe the encoder—i.e., the map from events
-          $\mathcal{X}$ to strings of symbols $\{0,1\}^m$ (where $m$ can possibly vary)—and let
-          $\ell(f(x)):\{0,1\}^m\to\mathbb{N}$ represent the length of the code associated with event $x\in\mathcal{X}$.
-          Then the average length of this encoding scheme is:
+          To state the bound mathematically, let $f:\mathcal{X}\to\{0,1\}^*$ describe the prefix encoder—i.e., the map
+          from events $\mathcal{X}$ to finite binary strings—and let $\ell(f(x))$ be the length of the codeword for
+          event $x\in\mathcal{X}$. Then the average length of this encoding scheme satisfies:
         </p>
         <p>
-          $$\mathbb{E}[\ell(f(X))]=\sum_{x\in\mathcal{X}}p(x)\ell(f(x))=\sum_{x\in\mathcal{X}}p(x)\log_2\frac{1}{p(x)}=H(X).$$
+          $$\mathbb{E}[\ell(f(X))]=\sum_{x\in\mathcal{X}}p(x)\ell(f(x))\ge\sum_{x\in\mathcal{X}}p(x)\log_2\frac{1}{p(x)}=H(X).$$
         </p>
         <p>
           where the right-hand side of the equation is equal to the entropy of the distribution $p(x)$. Thus the
-          entropy—a measure of uncertainty—is both the average information content of a random variable and the average
-          length of the shortest description of a random variable. In fact these two views are equivalent, and the
-          entropy lower bounds the minimum description length.
+          entropy—a measure of uncertainty—is both the average information content of a random variable and a lower
+          bound on the average length of the shortest binary description of a random variable. The coding interpretation
+          is asymptotic: encoding longer blocks of independent samples from the same distribution lets the average
+          length per symbol approach the entropy.
         </p>
         <p>
           We can extend ideas of information to two or more variables, e.g., quantifying the amount of (average)
@@ -131,27 +134,28 @@
         <h2>Data processing inequality</h2>
         <p>
           This brings us to the topic of this article: the <em>data processing inequality</em>. This inequality states
-          that processing a signal—of any kind—results in a loss of information. Formally, the inequality states that
-          for a Markov chain $X \to Y \to Z$, we have
+          that processing a signal cannot increase its mutual information about the source, provided the processing uses
+          only that signal. Formally, the inequality states that for a Markov chain $X \to Y \to Z$, we have
         </p>
         <p>$$ I(X;Y) \ge I(X;Z) \implies H(X\mid Y) \le H(X\mid Z).$$</p>
         <p>
-          That is, the mutual information of $X$ and $Y$ is greater than $X$ and $Z$; equivalently, the uncertainty
-          about $X$ given $Y$ is less than the uncertainty about $X$ given $Z$.
+          That is, the mutual information of $X$ and $Y$ is at least as large as that of $X$ and $Z$; equivalently, the
+          uncertainty about $X$ given $Y$ is no greater than the uncertainty about $X$ given $Z$. Equality is possible.
         </p>
         <p>
           To motivate what this means, simply think of $X$ as a message, $Y$ as the message transmitted over a channel,
-          and $Z$ as the received message. That is, $Y=f(X)$ and $Z=g(Y)$, are functions of only the previous step in
-          the chain of events. Given this setup, the inequality states that $Y$ contains more information about $X$ than
-          $Z$.
+          and $Z$ as the received message. For a deterministic example, $Y=f(X)$ and $Z=g(Y)$ are functions of only the
+          previous step in the chain of events. Given this setup, the inequality states that $Y$ contains at least as
+          much information about $X$ as $Z$.
         </p>
         <p>
           This inequality should intuitively make sense. When you process data, you are often applying a non-invertible
           transformation (e.g., filtering the signal to remove noise). As implied by "non-invertible", this is a one-way
-          process. Once you've applied a non-invertible transformation, you cannot recover the original signal. You can
-          make orange juice with an orange, but you can't make an orange with orange juice. Similarly, in processing
-          data, the information that is removed is lost to oblivion, which is what is conveyed by the data processing
-          inequality.
+          process. In general, once you've applied a non-invertible transformation, you cannot recover the original
+          signal. You can make orange juice with an orange, but you can't make an orange with orange juice. Similarly,
+          in processing data, the information that is removed is lost to oblivion, which is what is conveyed by the data
+          processing inequality. A transformation may discard details of $Y$ without losing information about $X$, if
+          those details are irrelevant to $X$.
         </p>
         <h2>Does modern image enhancement break the data processing inequality?</h2>
         <p>Following Betteridge's law of headlines, the answer is <em>no</em>.</p>
@@ -159,25 +163,25 @@
           When we look at image enhancement methods like de-noising and super-resolution, the output $Z$ looks like it
           better reflects what the true image $X$ would be if it were observed under better conditions as compared to
           the observed noisy or low-resolution image $Y$. Mathematically, it appears like the following statement is
-          true: $I(X;Y)\le I(X;Z)$—a reversal of the inequality.
+          true: $I(X;Y)&lt;I(X;Z)$—a reversal of the inequality.
         </p>
         <p>
           The state-of-the-art in machine learning methods—most frequently deep neural networks—create images that
-          closely resemble realistic images without noise (inverting the noise process), or images that have a greater
-          resolution than what than what the measurements allow with respect to the Nyquist rate.
+          closely resemble realistic images without noise, or supply plausible fine detail beyond what the measurements
+          alone resolve.
         </p>
         <p>
           An argument can be made that because the images are passed through a set of filter banks whose parameters are
           learned (i.e., a neural network), the data processing inequality doesn't apply. Vaguely, the hope is that $Z$
-          is not only a function of $Y$ but something like $Z=f(Y,g(X))$. In what follows, I argue that this is a flimsy
-          hope that doesn't withstand serious scrutiny.
+          is not only a function of $Y$ but something like $Z=f(Y,g(X))$. The distinction we need is between fixed
+          learned weights and side information about $X$.
         </p>
         <h3>Applicability of the inequality</h3>
         <p>
-          As stated before, the data-processing inequality still applies to de-noising and super-resolution. These
-          methods cannot invert an un-invertible function and add lost information. Learning the filters doesn't change
-          the fact that a series of filters—in the case of neural networks—are applied to the image. I'll provide a
-          couple of thought experiments to show why this is the case.
+          As stated before, the data processing inequality still applies when we treat the learned weights $\theta$ as
+          fixed and the network receives only $Y$. In that case $Z=f_\theta(Y)$, so we have the Markov chain $X\to Y\to
+          Z$. Learning the filters doesn't change that dependence. I'll provide a couple of thought experiments to show
+          why this is the case.
         </p>
         <p>
           Consider the case where the neural network was randomly initialized to the exact weights that were learned
@@ -191,13 +195,8 @@
           $\theta_1$ compared to randomly initialized parameters $\theta_{2}$, when $\theta_1=\theta_2$?
         </p>
         <p>
-          If you think that both sets of parameters add information, would you argue that the data processing is broken
-          when learned and also with some probability $p &gt; 0$ (the case where the weights were randomly initialized
-          to the learned weights)?
-        </p>
-        <p>
-          I think most reasonable people would see that answering in the affirmative to either argument is absurd, and
-          consequently neither sets of parameters add information.
+          This comparison holds the weights fixed; it does not establish that randomly initialized and learned weights
+          have the same statistical relationship to $X$.
         </p>
         <p>
           Admittedly, the above situation would only happen with a vanishingly small (but potentially strictly
@@ -214,7 +213,7 @@
         </p>
         <p>
           For a more traditional image enhancement step, consider the case where you observe an image with
-          salt-and-pepper noise and you apply a median filter—the optimal filter for that type of noise. Does the
+          salt-and-pepper noise and you apply a median filter—a commonly used filter for that type of noise. Does the
           filtered image now have more information than the original image? Most image processing experts would agree
           that would not be the case.
         </p>
@@ -229,8 +228,9 @@
           To be clear, I am <em>not</em> arguing that the learned parameters of a deep neural network aren't related to
           the observed data. Of course the parameters are related to the data, otherwise the network would do nothing
           useful. My argument is much more limited: the learned parameters do not add information that was not already
-          contained in the data. There is no guarantee that the de-noised or super-resolved image match what would have
-          been generated if the image were acquired under less noisy conditions or at a higher resolution.
+          contained in $Y$ when we treat the network as a fixed processing rule. There is no general guarantee that the
+          de-noised or super-resolved image will match what would have been generated if the image were acquired under
+          less noisy conditions or at a higher resolution.
         </p>
         <p>
           But if information is not added, what's going on? The de-noised and super-resolved images can often be shown
@@ -253,16 +253,16 @@
         </p>
         <p>
           Then, again, we have a situation where the data processing inequality applies. The data processing inequality
-          then states that $Z$ has less information about $X$ than $Y$. For concreteness, let's say $I(X; Y) = n$ bits
-          and $I(X; Z) = m$ bits for $m \le n$.
+          then states that $Z$ has no more information about $X$ than $Y$. For concreteness, let's say $I(X; Y) = n$
+          bits and $I(X; Z) = m$ bits for $m \le n$.
         </p>
         <p>
           Are all the poor simpletons that wear glasses simply misguided due to their lack of education in elementary
-          information theory? I, for one, will keep on wearing my glasses despite the information loss.
+          information theory? I, for one, will keep on wearing my glasses despite the possible information loss.
         </p>
         <p>
           This is a confusing result because, as someone with myopia, I perceive much more information in the light that
-          passes through my glasses than without my glasses<sup><a href="#fn1">[1]</a></sup
+          passes through my glasses than without my glasses<sup id="fnref1"><a href="#fn1">[1]</a></sup
           >. This is because my glasses alter the trajectory of the light such that my focal length is different. As a
           result, the light through my glasses is not aggregated, sub-optimally, to a collection of retinal
           cells—causing a perceived blur when viewing distant objects. However, the light $Y$, before it enters my eye,
@@ -287,15 +287,14 @@
           In the radio example I gave previously, the non-baseband, non-filtered signal is useless. It is full of noise
           and would require extremely expensive equipment to process the signal at the carrier frequency
           (notwithstanding the noise). Likewise with the salt-and-pepper image example; if the image is meant for human
-          viewing, why not apply the optimal filter? If the image is an artistic photo, the filtered image could be more
+          viewing, why not apply a median filter? If the image is an artistic photo, the filtered image could be more
           pleasant. If the image is for some scientific purpose, perhaps the filtered image will be more interpretable.
         </p>
         <h2>Takeaways</h2>
         <p>
-          While I gave several examples of the general uselessness of the data processing inequality in practical
-          settings, there is a major caveat in this uselessness. The data processing inequality does simply and clearly
-          state that image enhancement techniques like de-noising and super-resolution (outside of cases of multiple
-          measurements or strong assumptions known to be true) cannot recover lost information.
+          These examples show why the data processing inequality alone doesn't decide whether an enhancement method is
+          useful. It does provide a clear limit: processing $Y$ alone cannot increase its mutual information about $X$,
+          even when the result is a better estimate or is easier to use.
         </p>
         <p>
           While the resulting images may look better, the image enhancement steps cannot guarantee recovery of the lost
@@ -323,28 +322,31 @@
           3 \text{ mm}^3$. You want to segment the diseased portion of the tissue and either do not have the data or
           technical skill to implement a segmentation deep neural network to do the task. However, there is a
           publicly-available deep neural network that was trained for this segmentation task on nearly noise-free data
-          at $1 \text{ mm}^3$. In this case, it would be beneficial to first de-noise and super-resolve the images,
-          otherwise the network may perform poorly because of domain shift.
+          at $1 \text{ mm}^3$. In this case, it might be beneficial to first de-noise and super-resolve the images,
+          otherwise the network may perform poorly because of domain shift. You would still need to check that these
+          steps improve the segmentation on your clinical images.
         </p>
         <p>
           The data processing inequality is a mixed bag. It can be illuminating under certain conditions, but the
           limited definition of information central to the inequality can be deceiving.
         </p>
         <p>
-          <strong>Addendum</strong>: Side information can be provided about $X$ if you have some independent $T(X)$ or
-          have access to $W$ such that $X = h(W)$. But then we're analyzing a different problem because $X \to Y \to Z$
-          (assuming you include $T(X)$ or $W$ to create $Z$) doesn't form a Markov chain, so the data processing
-          inequality doesn't apply.
+          <strong>Addendum</strong>: If you have side information $S$ about $X$ in addition to $Y$, and use both to
+          create $Z$, the chain $X\to Y\to Z$ need not hold. The data processing inequality still applies to the
+          augmented input: $I(X;Z)\le I(X;Y,S)$. That can exceed $I(X;Y)$ without breaking the theorem. This is also how
+          to account for learned weights or training data when they are treated as random variables that provide
+          information about the target beyond $Y$.
         </p>
         <p>
-          Bayesianism won't save you here. A good prior on $X$ won't add information about $X$ if you only have access
-          to $Y$; a Markov chain $X\to Y \to Z$ is simply a joint distribution that factorizes as $p(x,y,z) =
-          p(x)p(y|x)(z|y)$. The exact, true prior of $X$ is implicit in the proof of the theorem!
+          Bayesianism won't save you here. A good prior on $X$ can improve an estimate, but a fixed function of $Y$
+          still cannot increase mutual information about $X$; a Markov chain $X\to Y \to Z$ is simply a joint
+          distribution that factorizes as $p(x,y,z) = p(x)p(y|x)p(z|y)$. The exact, true prior of $X$ is implicit in the
+          proof of the theorem!
         </p>
         <hr />
         <section>
           <ol>
-            <li>
+            <li id="fn1">
               <p>
                 Your brain will actually receive more information for technical reasons, but I'm narrowly focusing on
                 the information content of the light itself before it enters the eye. <a href="#fnref1">↩︎</a>
